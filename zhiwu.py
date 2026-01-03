@@ -37,7 +37,8 @@ def download_from_file(txt_filename, output_subfolder):
 
         # 开始下载，keyword是关键词，max_num是下载数量（这里设为3张）
         # overwrite=True 表示如果不小心重复下载会覆盖，防止占用空间
-        crawler.crawl(keyword=name, max_num=3, overwrite=True)
+        # 修改后的代码 (加上 " 植物" 后缀)：
+        crawler.crawl(keyword=name + " 植物 花", max_num=3, overwrite=True)
 
     print(f"✅ {txt_filename} 处理完成！\n")
 
