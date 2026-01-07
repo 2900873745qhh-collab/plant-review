@@ -8,25 +8,14 @@ from PIL import Image
 from streamlit_gsheets import GSheetsConnection
 import plant_expert
 
-# --- 🎨 UI 美化 ---
 st.set_page_config(page_title="百植斩 - 你的植物记忆神器", page_icon="⚔️", layout="centered")
 
 st.markdown("""
     <style>
     .main-title { font-size: 3rem !important; font-weight: 800; color: #2E7D32; text-align: center; margin-bottom: 0px; font-family: 'Helvetica Neue', sans-serif; }
     .sub-title { font-size: 1.2rem; color: #666; text-align: center; margin-bottom: 30px; }
-    .info-box { 
-        background-color: #e8f5e9; 
-        padding: 15px; 
-        border-radius: 10px; 
-        border-left: 5px solid #2E7D32; 
-        margin-top: 10px; 
-        text-align: left;
-        font-size: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+    .info-box { background-color: #e8f5e9; padding: 15px; border-radius: 10px; border-left: 5px solid #2E7D32; margin-top: 10px; text-align: left; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .stButton>button { border-radius: 20px; font-weight: bold; height: 50px; }
-    .sidebar-help { font-size: 0.85rem; color: #666; margin-bottom: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -38,7 +27,6 @@ def clear_temp_dir():
     os.makedirs(TEMP_DIR, exist_ok=True)
 
 
-# --- ☁️ 数据库 ---
 def get_db_connection(): return st.connection("gsheets", type=GSheetsConnection)
 
 
@@ -72,7 +60,6 @@ def sync_progress(user_name, plant_name, action="add"):
     return len(curr)
 
 
-# --- 🌱 内容源 ---
 def get_local_plants(base_dir):
     lst = []
     if os.path.exists(base_dir):
@@ -88,7 +75,6 @@ def get_local_plants(base_dir):
 def get_api_plants(names): return [{"name": n, "type": "api"} for n in names]
 
 
-# --- 🔄 初始化 ---
 if 'quiz_list' not in st.session_state: st.session_state.quiz_list = []
 if 'current_index' not in st.session_state: st.session_state.current_index = 0
 if 'show_answer' not in st.session_state: st.session_state.show_answer = False
@@ -96,7 +82,6 @@ if 'current_plant_data' not in st.session_state: st.session_state.current_plant_
 if 'mastered_count' not in st.session_state: st.session_state.mastered_count = 0
 if 'current_mode' not in st.session_state: st.session_state.current_mode = "1. 🏛️ 系统题库 (默认)"
 
-# --- 📱 侧边栏 ---
 with st.sidebar:
     st.markdown("## 👤 用户登录")
     user_name = st.text_input("斩杀者姓名：", placeholder="输入ID自动同步进度")
@@ -121,7 +106,6 @@ with st.sidebar:
                     st.session_state.current_plant_data = None
                     st.session_state.show_answer = False
                     st.rerun()
-
         elif mode.startswith("2"):
             st.caption("📝 上传 TXT 名单，自动联网搜图和资料。")
             txt = st.file_uploader("📄 上传名单 (txt)", type="txt")
@@ -135,7 +119,6 @@ with st.sidebar:
                 st.session_state.current_plant_data = None
                 st.session_state.show_answer = False
                 st.rerun()
-
         elif mode.startswith("3"):
             st.caption("📝 上传 ZIP 图片包。")
             zipf = st.file_uploader("📦 上传图片包 (zip)", type="zip")
@@ -155,7 +138,6 @@ with st.sidebar:
                 st.session_state.show_answer = False
                 st.rerun()
 
-# --- 🖥️ 主界面 ---
 st.markdown('<p class="main-title">⚔️ 百植斩</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Plant Slasher - 你的植物记忆神器</p>', unsafe_allow_html=True)
 
@@ -171,20 +153,15 @@ if not st.session_state.quiz_list:
 
 curr = st.session_state.quiz_list[st.session_state.current_index]
 
-# --- 🧠 数据获取 (含中文翻译) ---
 if (st.session_state.current_plant_data is None or
         st.session_state.current_plant_data.get('name_cn') != curr['name']):
 
-    # 1. API 模式
     if curr['type'] == 'api':
         with st.spinner("🧬 正在连接全球数据库..."):
             info = plant_expert.fetch_plant_info(curr['name'])
             st.session_state.current_plant_data = info if info else {"error": True, "name_cn": curr['name']}
-
-    # 2. 本地模式
     else:
         plant_data = {"local": True, "name_cn": curr['name'], "image_path": curr['image_path']}
-        # 尝试读本地 info.txt
         info_path = os.path.join(curr['folder_path'], "info.txt")
         if os.path.exists(info_path):
             try:
@@ -196,16 +173,12 @@ if (st.session_state.current_plant_data is None or
             except:
                 pass
 
-        # 无论本地有没有读到，只要有拉丁名，就去网上查一下中文科属（如果没有info.txt，fetch_info会自动查）
-        # 这里逻辑简化：如果没有中文科属，就现场查
         if "family_cn" not in plant_data:
-            with st.spinner(f"正在翻译 {curr['name']} 的科属..."):
-                # 如果本地已经有拉丁名，只查翻译
+            with st.spinner(f"正在云端补全 {curr['name']} 的科属信息..."):
                 if "scientific_name" in plant_data:
                     plant_data["family_cn"] = plant_expert.translate_latin_to_chinese(plant_data.get("family"))
                     plant_data["genus_cn"] = plant_expert.translate_latin_to_chinese(plant_data.get("genus"))
                 else:
-                    # 如果本地连拉丁名都没有，全套查
                     online_info = plant_expert.fetch_plant_info(curr['name'])
                     if online_info:
                         plant_data.update(online_info)
@@ -215,7 +188,6 @@ if (st.session_state.current_plant_data is None or
 
 data = st.session_state.current_plant_data
 
-# --- 🃏 卡片 ---
 with st.container():
     c_img, c_info = st.columns([1.5, 1])
     with c_img:
@@ -238,20 +210,32 @@ with st.container():
 
         if st.session_state.show_answer:
             st.markdown(f"## ✅ {data.get('name_cn')}")
-            if data.get("family") or data.get("scientific_name"):
-                # 优先显示中文，拉丁文在括号里
-                fam = f"{data.get('family_cn', '未知')} ({data.get('family', '')})"
-                gen = f"{data.get('genus_cn', '未知')} ({data.get('genus', '')})"
-                sci = data.get('scientific_name', '未知')
+
+            # --- 修复后的显示逻辑 ---
+            # 只有当科属信息存在，且不是 None，且不是空字符串时才显示
+            # 使用 or 操作符提供默认值，避免 None 报错
+            fam_cn = data.get('family_cn')
+            fam_la = data.get('family')
+            gen_cn = data.get('genus_cn')
+            gen_la = data.get('genus')
+            sci_nm = data.get('scientific_name')
+
+            # 只有当至少有一个信息是有效的时候才显示框
+            if fam_la or gen_la or sci_nm:
+                # 构造显示字符串，如果是 None 就显示 '未知'
+                fam_str = f"{fam_cn} ({fam_la})" if fam_cn and fam_la else (fam_cn or fam_la or "未知")
+                gen_str = f"{gen_cn} ({gen_la})" if gen_cn and gen_la else (gen_cn or gen_la or "未知")
+                sci_str = sci_nm or "未知"
+
                 st.markdown(f"""
                 <div class="info-box">
-                <b>科 (Family):</b> {fam} <br>
-                <b>属 (Genus):</b> {gen} <br>
-                <b>学名:</b> <i>{sci}</i>
+                <b>科 (Family):</b> {fam_str} <br>
+                <b>属 (Genus):</b> {gen_str} <br>
+                <b>学名:</b> <i>{sci_str}</i>
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                st.info("🤖 暂无专业信息")
+                st.info("🤖 暂无专业科属数据")
         else:
             st.markdown("### ❓  ?????")
             st.caption("看着图片，大声说出它的名字！")
