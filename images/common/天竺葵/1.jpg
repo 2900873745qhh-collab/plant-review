@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>LWS Protection DDoS - Vérification en cours</title>
+
+        <script id="anubis_version" type="application/json">"1.23.2"
+</script><script id="anubis_challenge" type="application/json">{"rules":{"algorithm":"fast","difficulty":4,"report_as":4},"challenge":{"id":"019b8874-ccfe-7b00-af5b-904b2579b58d","method":"fast","randomData":"9cf444bd3fce158140bd36d76b6558763d6a2263b06b8ed5b84a865c9b2cd7e8152d70881d6de27f6b9987dd0f90de32af16d067be39341d49155f5461c428bf","issuedAt":"2026-01-04T11:01:54.686734048+01:00","metadata":{"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36","X-Real-Ip":"38.60.136.149"},"spent":false}}
+</script><script id="anubis_base_prefix" type="application/json">""
+</script><script id="anubis_public_url" type="application/json">""
+</script>
+
+        <link rel="stylesheet" href="/.within.website/x/cmd/anubis/static/css/custom_lws.css">
+        <script defer src="/.within.website/x/cmd/anubis/static/js/tailwind.js"></script>
+        <script defer src="/.within.website/x/cmd/anubis/static/js/feather.min.js"></script>
+        <script defer src="/.within.website/x/cmd/anubis/static/js/lang_status.js"></script>
+    </head>
+    <body class="bg-gray-900 min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700" data-aos="fade-in">
+            <header class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center">
+                    
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center mr-3 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z" />
+                    </svg>
+                    </div>
+                    
+                    <span class="text-white font-semibold">LWS Protection DDoS</span>
+                </div>
+                <div id="language-selector" class="relative"></div>
+            </header>
+
+            <main class="px-8 py-10 text-center">
+            <div class="w-16 h-16 border-4 border-gray-600 border-t-orange-500 loader rounded-full mx-auto mb-6"></div>
+
+            <h1 id="title" class="text-xl font-semibold text-white mb-3">Vérification échouée accès non authorisé</h1>
+            <p id="message" class="text-gray-300 mb-8 leading-relaxed">
+                Votre accès n'a pas pu être vérifié. Contactez l'administrateur du site.
+            </p>
+
+            <div class="centered-div"><p id="status">Loading...</p><script async type="module" src="/.within.website/x/cmd/anubis/static/js/main.mjs?cacheBuster=1.23.2"></script><div id="progress" role="progressbar" aria-labelledby="status"><div class="bar-inner"></div></div><style>#progress{ display: none; }#status{ display: none; }</style><div id="testarea"></div></div>
+
+            <div class="bg-gray-700 rounded-lg p-4 border border-gray-600 mt-8">
+                <p id="footerTxt" class="text-sm text-gray-200">
+                <span class="font-medium text-white">LWS Protection DDoS</span> – LWS, hébergeur web N°1 en rapport qualité/prix et registrar de domaines
+                </p>
+            </div>
+            </main>
+
+            <footer class="bg-gray-800 px-6 py-3 text-center border-t border-gray-700">
+                <p class="text-xs text-gray-400">
+                    <a href="https://www.lws.fr" class="text-blue-400 hover:text-blue-500">www.lws.fr</a>
+                </p>
+            </footer>
+        </div>
+    </body>
+</html>

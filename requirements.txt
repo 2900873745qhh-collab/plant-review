@@ -1,3 +1,5 @@
 streamlit
-Pillow
+requests
+pandas
 st-gsheets-connection
+Pillow
