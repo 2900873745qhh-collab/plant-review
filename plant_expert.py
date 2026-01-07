@@ -11,65 +11,69 @@ PROXIES = {
     "https": "http://127.0.0.1:15732"
 }
 
-# 伪装头部 (非常重要！没有这个维基百科会拒绝连接)
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PlantReviewApp/1.0 (mailto:youremail@example.com)"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PlantReviewApp/2.0"
 }
 
-# 📖 人工字典 (你的保命符)
+# 📖 人工字典
 CUSTOM_DICTIONARY = {
     "青苹果竹芋": "Goeppertia orbifolia",
     "发财树": "Pachira glabra",
     "红枫": "Acer palmatum",
-    "圆叶刺轴榈": "Licuala grandis",  # 帮你补上了
-    "非洲凌霄": "Podranea ricasoliana",  # 帮你补上了
-    "橙钟花": "Tecoma alata",  # 帮你补上了
+    "圆叶刺轴榈": "Licuala grandis",
+    "非洲凌霄": "Podranea ricasoliana",
+    "橙钟花": "Tecoma alata",
     "黄钟花": "Tecoma stans",
     "硬骨凌霄": "Tecoma capensis",
-    "蓝星花": "Oxypetalum coeruleum"
+    "蓝星花": "Oxypetalum coeruleum",
+    "茶梅": "Camellia sasanqua"
 }
 
 
 # ==========================================
-# 搜索引擎模块
+# 🛠️ 核心工具箱
 # ==========================================
 
-def search_bing_image(keyword):
+def translate_latin_to_chinese(latin_name):
     """
-    【核武器】Bing 搜图 (只搜学名，保证准确且有图)
+    【新功能】把拉丁名 (如 Rosaceae) 翻译成中文 (如 蔷薇科)
+    原理：去 Wikidata 搜这个拉丁名，看它的中文标签是什么
     """
-    try:
-        url = "https://www.bing.com/images/search"
-        # 搜索学名 + "plant" 确保万无一失
-        params = {"q": f"{keyword} plant", "first": 1, "count": 1}
-        # Bing 不需要代理通常也能连，如果连不上会自动跳过
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=5)
+    if not latin_name or latin_name == "未知":
+        return latin_name
 
-        # 使用正则提取图片链接 (Bing 的页面结构)
-        # 这是一个简单的提取逻辑，通常能拿到第一张大图
-        links = re.findall(r'murl&quot;:&quot;(.*?)&quot;', resp.text)
-        if links:
-            return links[0]
+    url = "https://www.wikidata.org/w/api.php"
+    params = {
+        "action": "wbsearchentities",
+        "search": latin_name,
+        "language": "zh",  # 关键：告诉它我要中文结果
+        "format": "json",
+        "limit": 1
+    }
+    try:
+        # 使用魔法访问
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=3, proxies=PROXIES)
+        data = resp.json()
+        if data.get("search"):
+            # Wikidata 非常智能，如果 language=zh，label 字段就会直接返回中文
+            return data["search"][0].get("label", latin_name)
     except:
         pass
-    return None
+    return latin_name  # 翻译失败就返回原文
 
 
 def get_latin_from_wikidata(chinese_name):
-    """【翻译官 1】Wikidata"""
+    """中文 -> 拉丁"""
     url = "https://www.wikidata.org/w/api.php"
-    params = {
-        "action": "wbsearchentities", "search": chinese_name,
-        "language": "zh", "format": "json", "limit": 1
-    }
+    params = {"action": "wbsearchentities", "search": chinese_name, "language": "zh", "format": "json", "limit": 1}
     try:
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=5, proxies=PROXIES)
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=3, proxies=PROXIES)
         data = resp.json()
         if not data.get("search"): return None
         entity_id = data["search"][0]["id"]
 
         ent_params = {"action": "wbgetentities", "ids": entity_id, "props": "claims", "format": "json"}
-        ent_resp = requests.get(url, params=ent_params, headers=HEADERS, timeout=5, proxies=PROXIES)
+        ent_resp = requests.get(url, params=ent_params, headers=HEADERS, timeout=3, proxies=PROXIES)
         claims = ent_resp.json().get("entities", {}).get(entity_id, {}).get("claims", {})
         if "P225" in claims:
             return claims["P225"][0]["mainsnak"]["datavalue"]["value"]
@@ -79,11 +83,11 @@ def get_latin_from_wikidata(chinese_name):
 
 
 def get_latin_from_inaturalist(chinese_name):
-    """【翻译官 2】iNaturalist"""
+    """中文 -> 拉丁 (iNat)"""
     url = "https://api.inaturalist.org/v1/taxa"
     params = {"q": chinese_name, "per_page": 3, "locale": "zh-CN", "taxon_id": 47126}
     try:
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=5)  # iNat 一般不用代理
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=5)
         data = resp.json()
         if data['results']:
             for res in data['results']:
@@ -95,22 +99,26 @@ def get_latin_from_inaturalist(chinese_name):
 
 
 def _query_gbif(query_name):
-    """【图库 A】GBIF"""
+    """GBIF 查详情"""
     try:
         r1 = requests.get("https://api.gbif.org/v1/species/search",
                           params={"q": query_name, "limit": 1}, headers=HEADERS, timeout=5)
         d1 = r1.json()
         if not d1['results']: return None
         sp = d1['results'][0]
-        # 排除非物种
         if sp.get('rank') in ['CLASS', 'ORDER', 'PHYLUM', 'KINGDOM']: return None
 
         key = sp.get('key')
+
+        # 获取原始拉丁信息
+        family_latin = sp.get('family', '未知')
+        genus_latin = sp.get('genus', '未知')
+
         result = {
             "name_cn": query_name,
             "scientific_name": sp.get('scientificName', '未知'),
-            "family": sp.get('family', '未知'),
-            "genus": sp.get('genus', '未知'),
+            "family": family_latin,
+            "genus": genus_latin,
             "image_url": None
         }
 
@@ -128,96 +136,95 @@ def _query_gbif(query_name):
 
 
 def get_image_from_wikimedia(scientific_name):
-    """【图库 B】Wiki"""
+    """Wiki 搜图"""
     url = "https://commons.wikimedia.org/w/api.php"
-    params = {
-        "action": "query", "generator": "search",
-        "gsrsearch": f"{scientific_name} filetype:bitmap",
-        "gsrlimit": 1, "prop": "imageinfo", "iiprop": "url", "format": "json"
-    }
+    params = {"action": "query", "generator": "search", "gsrsearch": f"{scientific_name} filetype:bitmap",
+              "gsrlimit": 1, "prop": "imageinfo", "iiprop": "url", "format": "json"}
     try:
-        # Wiki 必须加 User-Agent 头，否则必挂
         r = requests.get(url, params=params, headers=HEADERS, timeout=5, proxies=PROXIES)
         pages = r.json().get("query", {}).get("pages", {})
-        for _, val in pages.items():
-            return val.get("imageinfo", [{}])[0].get("url")
+        for _, val in pages.items(): return val.get("imageinfo", [{}])[0].get("url")
+    except:
+        pass
+    return None
+
+
+def search_bing_image(keyword):
+    """Bing 搜图"""
+    try:
+        url = "https://www.bing.com/images/search"
+        params = {"q": f"{keyword} plant", "first": 1, "count": 1}
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=5)
+        links = re.findall(r'murl&quot;:&quot;(.*?)&quot;', resp.text)
+        if links: return links[0]
     except:
         pass
     return None
 
 
 # ==========================================
-# 总指挥
+# 🎮 总指挥
 # ==========================================
 
 def fetch_plant_info(plant_name):
     latin_name = None
-    fallback_image = None  # iNat 图
-
+    fallback_image = None
     print(f"    🔍 解析 [{plant_name}] ...", end="")
 
-    # 1. 查字典
     if plant_name in CUSTOM_DICTIONARY:
         latin_name = CUSTOM_DICTIONARY[plant_name]
-        print(f" (字典命中: {latin_name})", end="")
+        print(f" (字典: {latin_name})", end="")
 
-    # 2. 查 Wiki
     if not latin_name:
         latin_name = get_latin_from_wikidata(plant_name)
-        if latin_name: print(f" (Wiki锁定: {latin_name})", end="")
+        if latin_name: print(f" (Wiki: {latin_name})", end="")
 
-    # 3. 查 iNat
     if not latin_name:
         latin_name, fallback_image = get_latin_from_inaturalist(plant_name)
-        if latin_name: print(f" (iNat锁定: {latin_name})", end="")
+        if latin_name: print(f" (iNat: {latin_name})", end="")
 
-    # 决定用什么名字去搜图
     search_term = latin_name if latin_name else plant_name
 
-    # --- 构造基础信息 ---
-    final_info = {
-        "name_cn": plant_name,
-        "scientific_name": search_term,
-        "family": "暂未获取",
-        "genus": search_term.split()[0] if search_term else "未知",
-        "image_url": None
-    }
+    # 1. 查 GBIF
+    final_info = _query_gbif(search_term)
 
-    # --- 搜图大作战 ---
+    # 如果没查到，构造基本结构
+    if not final_info:
+        final_info = {
+            "name_cn": plant_name,
+            "scientific_name": search_term,
+            "family": "未知",
+            "genus": search_term.split()[0] if search_term else "未知",
+            "image_url": None
+        }
+    else:
+        final_info["name_cn"] = plant_name
 
-    # 尝试 A: GBIF
-    gbif_data = _query_gbif(search_term)
-    if gbif_data and gbif_data['image_url']:
-        final_info.update(gbif_data)
-        final_info['name_cn'] = plant_name
-        print(" -> GBIF有图 ✅")
-        return final_info
-
-    # 尝试 B: Wiki (必须有学名)
+    # 2. 补图逻辑 (Wiki -> Bing -> iNat)
     if not final_info['image_url'] and latin_name:
         wiki_img = get_image_from_wikimedia(latin_name)
         if wiki_img:
             final_info['image_url'] = wiki_img
-            print(" -> Wiki有图 ✅")
-            return final_info
+            print(" -> Wiki图 ✅")
 
-    # 尝试 C: Bing (最后的救星)
     if not final_info['image_url']:
-        print(" -> 专业库无图，启动Bing...", end="")
-        # 如果有学名，用学名搜；没有学名，用中文+植物搜
+        print(" -> 启用Bing...", end="")
         bing_query = latin_name if latin_name else f"{plant_name} 植物"
         bing_img = search_bing_image(bing_query)
         if bing_img:
             final_info['image_url'] = bing_img
-            final_info['family'] = "来源: Bing搜索"
-            print(" Bing有图 ✅")
-            return final_info
+            print(" Bing图 ✅")
 
-    # 尝试 D: iNat 保底
     if not final_info['image_url'] and fallback_image:
         final_info['image_url'] = fallback_image
-        print(" -> iNat保底 ✅")
-        return final_info
+        print(" -> iNat图 ✅")
 
-    print(" ❌ 彻底无图")
-    return None
+    # -----------------------------------------------
+    # 🚨 关键升级：把拉丁科属翻译成中文
+    # -----------------------------------------------
+    print(" -> 翻译科属...", end="")
+    final_info['family_cn'] = translate_latin_to_chinese(final_info.get('family'))
+    final_info['genus_cn'] = translate_latin_to_chinese(final_info.get('genus'))
+    print(" 完成 ✅")
+
+    return final_info
