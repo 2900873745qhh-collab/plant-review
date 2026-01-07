@@ -1,4 +1,4 @@
 中文名: 金叶假连翘
-学名: Crepidiastrum Nakai
-科: Asteraceae
-属: Crepidiastrum
+学名: Fissilobulata Pan & Bian, 2024
+科: Tettigoniidae
+属: Fissilobulata longiloba

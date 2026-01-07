@@ -1,4 +1,4 @@
 中文名: 石蚕叶铁苋菜
-学名: Ixeris (Cass.) Cass.
-科: Asteraceae
-属: Ixeris
+学名: Fissilobulata Pan & Bian, 2024
+科: Tettigoniidae
+属: Fissilobulata longiloba

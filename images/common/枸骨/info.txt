@@ -1,4 +1,4 @@
 中文名: 枸骨
-学名: Ilex cornuta
-科: 来源: Bing搜索
-属: Ilex
+学名: Ilex cornuta carlavirus
+科: Betaflexiviridae
+属: Carlavirus

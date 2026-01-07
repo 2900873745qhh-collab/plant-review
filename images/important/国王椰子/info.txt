@@ -1,4 +1,4 @@
 中文名: 国王椰子
 学名: Ravenea rivularis Jum. & H.Perrier
-科: Arecaceae
-属: Ravenea
+科: 棕榈科
+属: Raveneau
