@@ -8,6 +8,7 @@ from PIL import Image
 from streamlit_gsheets import GSheetsConnection
 import plant_expert
 
+# --- 🎨 UI 美化 ---
 st.set_page_config(page_title="百植斩 - 你的植物记忆神器", page_icon="⚔️", layout="centered")
 
 st.markdown("""
@@ -94,7 +95,6 @@ with st.sidebar:
         mode = st.radio("复习方式：", ["1. 🏛️ 系统题库 (默认)", "2. 🧠 智能搜图 (API)", "3. 📂 我的图片包 (ZIP)"], index=0)
 
         if mode.startswith("1"):
-            st.caption("📝 使用服务器预置高清图库。")
             if st.session_state.current_mode != mode or not st.session_state.quiz_list:
                 raw = get_local_plants("images/common") + get_local_plants("images/important")
                 flt = [p for p in raw if p['name'] not in ml]
@@ -107,7 +107,6 @@ with st.sidebar:
                     st.session_state.show_answer = False
                     st.rerun()
         elif mode.startswith("2"):
-            st.caption("📝 上传 TXT 名单，自动联网搜图和资料。")
             txt = st.file_uploader("📄 上传名单 (txt)", type="txt")
             if txt and st.button("🚀 开始联网搜索", use_container_width=True):
                 ns = [l.strip() for l in txt.getvalue().decode("utf-8").split('\n') if l.strip()]
@@ -120,7 +119,6 @@ with st.sidebar:
                 st.session_state.show_answer = False
                 st.rerun()
         elif mode.startswith("3"):
-            st.caption("📝 上传 ZIP 图片包。")
             zipf = st.file_uploader("📦 上传图片包 (zip)", type="zip")
             if zipf and st.button("📂 解压加载", use_container_width=True):
                 clear_temp_dir()
@@ -163,22 +161,35 @@ if (st.session_state.current_plant_data is None or
     else:
         plant_data = {"local": True, "name_cn": curr['name'], "image_path": curr['image_path']}
         info_path = os.path.join(curr['folder_path'], "info.txt")
+
+        # 🌟 关键修改：读取本地文件时，进行“脏数据过滤”
         if os.path.exists(info_path):
             try:
                 with open(info_path, "r", encoding="utf-8") as f:
                     for line in f:
-                        if "学名:" in line: plant_data["scientific_name"] = line.split(":", 1)[1].strip()
-                        if "科:" in line: plant_data["family"] = line.split(":", 1)[1].strip()
-                        if "属:" in line: plant_data["genus"] = line.split(":", 1)[1].strip()
+                        if ":" in line:
+                            key, val = line.split(":", 1)
+                            key = key.strip()
+                            val = val.strip()
+                            # 🚨 如果值包含 "Bing" 或 "未知"，就当没看见，不读入
+                            if "Bing" in val or "未知" in val:
+                                continue
+
+                            if "学名" in key: plant_data["scientific_name"] = val
+                            if "科" in key: plant_data["family"] = val
+                            if "属" in key: plant_data["genus"] = val
             except:
                 pass
 
-        if "family_cn" not in plant_data:
+        # 只要有一项缺失，就去联网查
+        if "family" not in plant_data or "scientific_name" not in plant_data:
             with st.spinner(f"正在云端补全 {curr['name']} 的科属信息..."):
                 if "scientific_name" in plant_data:
+                    # 如果本地只有学名，只查科属翻译
                     plant_data["family_cn"] = plant_expert.translate_latin_to_chinese(plant_data.get("family"))
                     plant_data["genus_cn"] = plant_expert.translate_latin_to_chinese(plant_data.get("genus"))
                 else:
+                    # 如果本地啥都没有（或者被过滤掉了），全套查
                     online_info = plant_expert.fetch_plant_info(curr['name'])
                     if online_info:
                         plant_data.update(online_info)
@@ -211,18 +222,15 @@ with st.container():
         if st.session_state.show_answer:
             st.markdown(f"## ✅ {data.get('name_cn')}")
 
-            # --- 修复后的显示逻辑 ---
-            # 只有当科属信息存在，且不是 None，且不是空字符串时才显示
-            # 使用 or 操作符提供默认值，避免 None 报错
+            # 显示逻辑
             fam_cn = data.get('family_cn')
             fam_la = data.get('family')
             gen_cn = data.get('genus_cn')
             gen_la = data.get('genus')
             sci_nm = data.get('scientific_name')
 
-            # 只有当至少有一个信息是有效的时候才显示框
-            if fam_la or gen_la or sci_nm:
-                # 构造显示字符串，如果是 None 就显示 '未知'
+            # 只有当数据不包含 "Bing" 且有效时才显示
+            if (fam_la or gen_la or sci_nm) and "Bing" not in str(fam_la):
                 fam_str = f"{fam_cn} ({fam_la})" if fam_cn and fam_la else (fam_cn or fam_la or "未知")
                 gen_str = f"{gen_cn} ({gen_la})" if gen_cn and gen_la else (gen_cn or gen_la or "未知")
                 sci_str = sci_nm or "未知"
